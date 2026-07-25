@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: leaddesk
+      POSTGRES_PASSWORD: leaddesk
+      POSTGRES_DB: leaddesk
+    ports:
+      - "5432:5432"
+    volumes:
+      - leaddesk_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leaddesk -d leaddesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed"
+    environment:
+      DATABASE_URL: postgresql://leaddesk:leaddesk@db:5432/leaddesk?schema=public
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@leaddesk.dev}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?set SEED_ADMIN_PASSWORD in your .env before running compose}
+      SEED_ADMIN_NAME: ${SEED_ADMIN_NAME:-LeadDesk Admin}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://leaddesk:leaddesk@db:5432/leaddesk?schema=public
+      JWT_SECRET: ${JWT_SECRET:?set a 32+ character JWT_SECRET in your .env before running compose}
+      JWT_EXPIRES_IN: 8h
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NODE_ENV: production
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
+      LEAD_SUBMIT_RATE_LIMIT: 10
+      LOGIN_RATE_LIMIT: 5
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  leaddesk_pgdata:

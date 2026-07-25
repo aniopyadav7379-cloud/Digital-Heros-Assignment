@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: leaddesk
+          POSTGRES_PASSWORD: leaddesk
+          POSTGRES_DB: leaddesk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U leaddesk -d leaddesk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://leaddesk:leaddesk@localhost:5432/leaddesk?schema=public
+      JWT_SECRET: ci-only-secret-key-not-used-anywhere-else-1234567890
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build

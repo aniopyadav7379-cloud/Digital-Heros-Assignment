@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BudgetRange {
+  UNDER_1K
+  ONE_TO_5K
+  FIVE_TO_20K
+  TWENTY_TO_50K
+  OVER_50K
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  CLOSED
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+/// Authentication principals for the admin dashboard. Fully additive:
+/// no existing Lead fields or data are affected by this model.
+model User {
+  id           String   @id @default(cuid())
+  name         String   @db.VarChar(120)
+  email        String   @unique @db.VarChar(254)
+  passwordHash String   @db.VarChar(255)
+  role         Role     @default(STAFF)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@map("users")
+}
+
+model Lead {
+  id        String      @id @default(cuid())
+  name      String      @db.VarChar(120)
+  email     String      @db.VarChar(254)
+  budget    BudgetRange
+  message   String      @db.VarChar(2000)
+  status    LeadStatus  @default(NEW)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+  @@map("leads")
+}
