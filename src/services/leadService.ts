@@ -97,14 +97,15 @@ export const leadService = {
       throw new ApiError(404, "NOT_FOUND", `Lead ${id} was not found.`);
     }
 
-    // Allow setting to the same status (idempotent) or any forward/backward
-    // move an admin explicitly picks from the dropdown — but block resurrecting
-    // a CLOSED lead by accident via a stale client, which must re-fetch first.
-    if (lead.status === "CLOSED" && input.status !== "CLOSED" && lead.status === input.status) {
+    // Setting to the same status is a no-op (idempotent) — skip the write.
+    // Any other forward/backward move is allowed; pipeline order (NEW ->
+    // CONTACTED -> CLOSED) is enforced in the UI only, not the API, so an
+    // admin can explicitly reopen a CLOSED lead from the dropdown if needed.
+    if (lead.status === input.status) {
       return lead;
     }
 
-    void NEXT_STATUS; // pipeline order is enforced in the UI; API allows any valid enum value
+    void NEXT_STATUS; // referenced so the pipeline-order constant stays exported for UI use
 
     return prisma.lead.update({
       where: { id },
