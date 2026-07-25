@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: "standalone",
+  // Only used by the Dockerfile build. Vercel does its own serverless
+  // function bundling/tracing — forcing "standalone" there is a known
+  // cause of native binaries (like the Prisma query engine) not being
+  // packaged into the deployed function correctly, which surfaces as
+  // every DB-touching API route failing with a generic 500 at runtime.
+  ...(process.env.VERCEL ? {} : { output: "standalone" }),
   eslint: {
     dirs: ["src"],
   },
