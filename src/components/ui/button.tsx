@@ -37,6 +37,25 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, loading = false, children, disabled, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
+
+    // Radix Slot requires exactly one element child. When asChild is used
+    // (rendering as e.g. an <a> or <Link>), pass children through untouched —
+    // mixing in the loading spinner here would give Slot an array of two
+    // children and crash with "Slot failed to slot onto its children."
+    if (asChild) {
+      return (
+        <Comp
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          disabled={disabled || loading}
+          aria-busy={loading || undefined}
+          {...props}
+        >
+          {children}
+        </Comp>
+      );
+    }
+
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}

@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import type { Lead } from "@prisma/client";
 import { leadService } from "@/services/leadService";
+
+// Reads the session cookie for auth — must never be statically cached.
+export const dynamic = "force-dynamic";
 import { handleRouteError } from "@/lib/api-response";
 import { LEAD_STATUSES, BUDGET_LABELS, STATUS_LABELS } from "@/types/lead";
 import { z } from "zod";

@@ -5,6 +5,9 @@ import { created, ok, fail, handleRouteError } from "@/lib/api-response";
 import { isRateLimited } from "@/lib/rate-limit";
 import { requireRole } from "@/lib/auth/rbac";
 
+// GET reads the session cookie for auth — must never be statically cached.
+export const dynamic = "force-dynamic";
+
 const SUBMIT_LIMIT = Number(process.env.LEAD_SUBMIT_RATE_LIMIT ?? 10);
 
 function getClientIp(req: NextRequest): string {
